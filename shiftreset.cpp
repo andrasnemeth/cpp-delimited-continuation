@@ -194,51 +194,27 @@ private:
     std::function<R(std::function<R(Arg)>)> lambda;
  };
 
-// Below are some of the dead ends left trying to deduce the argument type of
-// the lambda inside the shift part.
-#if 0
-template<typename Expr>
-struct DeduceK_ {
-private:
-    template<typename Signature>
-    struct Deduce;
+// The classes participating in the deduction of the lambda type traits
+// given in the shift part of the expression
+// TODO: DelimitedContinuation might use this deduction
+template<typename T>
+struct FunctionTraits2;
 
-    template<typename R, typename Arg>
-    struct Deduce<const std::function<R(Arg)>&> {
-        typedef std::function<R(Arg)> type;
-    };
+template<typename T, typename R, typename Arg>
+struct FunctionTraits2<R(T::*)(Arg) const> {
 
-    typedef typename std::result_of<ShiftExtractGrammar(Expr)>::type lambda;
+    using Result = R;
+    using Argument = Arg;
 
-public:
-    //typedef int type;
-    typedef typename Deduce<decltype(std::declval<lambda>())>::type type;
-};
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-
-template<typename Signature>
-struct DeduceK {
-};
-
-//----------------------------------------------------------------------------//
-
-template<typename R, typename Arg>
-struct DeduceK<std::function<R(Arg)>> {
-    typedef std::function<R(Arg)> type;
 };
 
 template<typename T>
-struct Identity {
-    typedef T type;
+struct FunctionTraits : FunctionTraits2<decltype(&
+        std::remove_reference<
+                typename std::remove_const<T>::type>::type::operator())> {
+    // TODO: make another metafunction that extracts operator()
+    //       and leave this to strip the const &
 };
-
-template<typename R, typename Arg>
-std::function<R(Arg)> shift(typename Identity<std::function<R(Arg)>>::type& k) {
-    return k;
-}
-
-#endif
 
 //============================================================================//
 
@@ -249,6 +225,22 @@ int main() {
                           [](std::function<int(const int&)> k) -> int {
                               return k(6);
                           }) - 1);
+
+    // Here is the deduction of the Lambda type
+    using Lambda = std::result_of<ShiftExtractGrammar(decltype(expr))>::type;
+
+    // Here is the extraction of the lambda argument type
+    std::function<int(std::function<int(const int&)>)> extractedLambda =
+            ShiftExtractGrammar()(expr);
+
+    using LArgument = FunctionTraits<Lambda>::Argument;
+
+    LArgument a = [](const int& value) {
+        return value + 3;
+    };
+
+    std::cout << "The extracted lamba argument type called with 45: " << a(45)
+              << std::endl;
 
     // The created expressions can be statically checked if those conform the
     // grammar.
