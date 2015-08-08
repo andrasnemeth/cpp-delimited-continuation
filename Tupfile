@@ -1,0 +1,1 @@
+: shiftreset.cpp |> clang++ -std=c++14 %f -o %o |> %B
