@@ -1,4 +1,6 @@
 #include <boost/mpl/if.hpp>
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
 #include <boost/proto/context.hpp>
 #include <boost/proto/core.hpp>
 #include <boost/proto/debug.hpp>
@@ -196,8 +198,17 @@ public:
         callable = std::bind(lambda, k);
     }
 
-    R operator()() {
-        return callable();
+    Continuation operator()() {
+        result = callable();
+        return *this;
+    }
+
+    bool isTerminated() const {
+        return true;
+    }
+
+    const boost::optional<R>& getResult() const {
+        return result;
     }
 
     // The original expression is kept for debugging purposes.
@@ -208,7 +219,15 @@ public:
 private:
     const Expr expr;
     std::function<R()> callable;
+    boost::optional<R> result;
 };
+
+template<typename Char, typename Traits, typename R, typename Expr>
+std::basic_ostream<Char, Traits>& operator<<(
+        std::basic_ostream<Char, Traits>& stream,
+        const Continuation<R, Expr>& continuation) {
+    return stream << continuation.getResult();
+}
 
 // It is possible to create the ShiftResetExpression type. It would provide more
 // control on how an expression is assembled and also validate expressions.
@@ -338,6 +357,15 @@ int main() {
     // Let's see if it works. If the operator() is called on the delimited
     // continuation, then the expression is evaluated.
     std::cout << "The newer method: " << continuation() << std::endl;
+
+    std::vector<int> data = {1,2,3,4};
+    auto vexpr = reset(boost::proto::lit(data) [shift(
+                        [](std::function<int(int)> k) {
+                            return k(0);
+                        }
+                )]);
+
+    boost::proto::display_expr(vexpr.getExpr());
 
     // TODO: contrive how to do the selection- and iteration-based use cases.
     //       something similar needs to be created here that is
