@@ -4,7 +4,11 @@
 #include <boost/proto/context.hpp>
 #include <boost/proto/core.hpp>
 #include <boost/proto/debug.hpp>
+#include <boost/proto/extends.hpp>
 #include <boost/proto/transform.hpp>
+#include <boost/range/iterator.hpp>
+#include <boost/range/begin.hpp>
+#include <boost/range/end.hpp>
 #include <boost/type_traits/function_traits.hpp>
 #include <boost/type_traits/remove_pointer.hpp>
 
@@ -29,8 +33,15 @@ struct ShiftTag {
 
 // The shift terminal tag of the new exppression
 // TODO: same as for 'reset' above
-const boost::proto::terminal<ShiftTag>::type shift = {
+const boost::proto::terminal<ShiftTag>::type shift{};
+
+//============================================================================//
+
+struct ForeachTag {
 };
+
+const boost::proto::terminal<ForeachTag>::type foreach{};
+
 
 //============================================================================//
 
@@ -55,6 +66,22 @@ struct PlaceholderTransform : boost::proto::transform<PlaceholderTransform> {
             return boost::proto::as_expr(Placeholder());
         }
     };
+};
+
+//============================================================================//
+
+template<typename Range>
+class RangeWrapper {
+public:
+    RangeWrapper(Range& range)
+			: iterator(boost::begin(range)),
+			  end(boost::end(range)) {
+    }
+
+private:
+	using Iterator = typename boost::range_iterator<Range>::type;
+	Iterator iterator;
+	Iterator end;
 };
 
 //============================================================================//
@@ -143,6 +170,11 @@ struct PlaceholderGrammar : boost::proto::or_<
                 boost::proto::terminal<ShiftTag>,
                 boost::proto::terminal<boost::proto::_>>,
                        PlaceholderTransform>,
+		boost::proto::when<
+				boost::proto::subscript<
+						boost::proto::terminal<ForeachTag>,
+						boost::proto::_>,
+				RangeWrapper<boost::proto::_left>(boost::proto::_value(left))>,
         boost::proto::nary_expr<boost::proto::_,
                 boost::proto::vararg<PlaceholderGrammar>>> {
 };
@@ -358,14 +390,25 @@ int main() {
     // continuation, then the expression is evaluated.
     std::cout << "The newer method: " << continuation() << std::endl;
 
+    struct ExampleTag {};
+    const boost::proto::terminal<ExampleTag>::type example{};
+
+    boost::proto::display_expr(example[1](2));
+
+    struct ForeachTag {};
+    // // const ShiftResetExpression<boost::proto::terminal<ForeachTag>::type> foreach;
+    const boost::proto::terminal<ForeachTag>::type foreach{};
+
     std::vector<int> data = {1,2,3,4};
-    auto vexpr = reset(boost::proto::lit(data) [shift(
+    boost::proto::display_expr(foreach[data](1));
+
+    auto vexpr = reset(foreach[data](shift(
                         [](std::function<int(int)> k) {
                             return k(0);
-                        }
-                )]);
+                        })));
 
-    boost::proto::display_expr(vexpr.getExpr());
+    // boost::proto::display_expr(vexpr.getExpr());
+
 
     // TODO: contrive how to do the selection- and iteration-based use cases.
     //       something similar needs to be created here that is
