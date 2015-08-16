@@ -73,7 +73,7 @@ struct PlaceholderTransform : boost::proto::transform<PlaceholderTransform> {
 template<typename Range>
 class RangeWrapper {
 public:
-    RangeWrapper(Range& range)
+    explicit RangeWrapper(Range& range)
 			: iterator(boost::begin(range)),
 			  end(boost::end(range)) {
     }
@@ -84,6 +84,23 @@ private:
 	Iterator end;
 };
 
+struct RangeWrapperTransform : boost::proto::callable {
+
+	template<typename Signature>
+	struct result;
+
+	template<typename This, typename Range>
+	struct result<This(Range&)> {
+		using type = typename boost::proto::result_of::as_expr<
+				RangeWrapper<Range>>::type;
+	};
+
+	template<typename Range>
+	auto operator()(Range& range) {
+		return boost::proto::as_expr(RangeWrapper<Range>(range));
+	}
+};
+
 //============================================================================//
 
 // This is not a real grammar. It searches for a shift-part of a proto
@@ -92,22 +109,22 @@ private:
 // walking on the tree is finished.
 struct ShiftExtractGrammar : boost::proto::or_<
         boost::proto::when<
-                boost::proto::function<boost::proto::terminal<ShiftTag>,
-                        boost::proto::terminal<boost::proto::_>>,
+		boost::proto::function<boost::proto::terminal<ShiftTag>,
+				boost::proto::terminal<boost::proto::_>>,
                 ShiftExtractGrammar(boost::proto::_left,
-                        boost::proto::_value(boost::proto::_right))>, // <-- here it is put into the state
-        boost::proto::when<
-                boost::proto::function<boost::proto::terminal<ResetTag>,
-                        boost::proto::_>,
-                ShiftExtractGrammar(boost::proto::_right)>,
-        boost::proto::when<
-                boost::proto::binary_expr<boost::proto::_, ShiftExtractGrammar,
-                        ShiftExtractGrammar>,
-                ShiftExtractGrammar(boost::proto::_left,
-                        ShiftExtractGrammar(boost::proto::_right))>,
-        boost::proto::when<
-                boost::proto::unary_expr<boost::proto::_, ShiftExtractGrammar>,
-                        ShiftExtractGrammar(boost::proto::_right)>,
+				boost::proto::_value(boost::proto::_right))>, // <-- here it is put into the state
+						boost::proto::when<
+								boost::proto::function<boost::proto::terminal<ResetTag>,
+										boost::proto::_>,
+						ShiftExtractGrammar(boost::proto::_right)>,
+						boost::proto::when<
+								boost::proto::binary_expr<boost::proto::_, ShiftExtractGrammar,
+										ShiftExtractGrammar>,
+								ShiftExtractGrammar(boost::proto::_left,
+								ShiftExtractGrammar(boost::proto::_right))>,
+	boost::proto::when<
+			boost::proto::unary_expr<boost::proto::_, ShiftExtractGrammar>,
+			ShiftExtractGrammar(boost::proto::_right)>,
         boost::proto::when<
                 boost::proto::terminal<boost::proto::_>, boost::proto::_state> // <-- here it is returned
         > {
@@ -162,6 +179,12 @@ private:
 // This is not a real grammar, it checks if the expression tree contains a
 // shift-part and replaces the subtree with the result of PlaceholderTransform.
 struct PlaceholderGrammar : boost::proto::or_<
+		boost::proto::when<
+				boost::proto::subscript<
+				        boost::proto::terminal<ForeachTag>,
+			            boost::proto::_>,
+				RangeWrapperTransform(boost::proto::_value(PlaceholderGrammar(
+						boost::proto::_right)))>,
         boost::proto::when<
                 boost::proto::function<boost::proto::terminal<ResetTag>,
                         boost::proto::_>,
@@ -170,11 +193,6 @@ struct PlaceholderGrammar : boost::proto::or_<
                 boost::proto::terminal<ShiftTag>,
                 boost::proto::terminal<boost::proto::_>>,
                        PlaceholderTransform>,
-		boost::proto::when<
-				boost::proto::subscript<
-						boost::proto::terminal<ForeachTag>,
-						boost::proto::_>,
-				RangeWrapper<boost::proto::_left>(boost::proto::_value(left))>,
         boost::proto::nary_expr<boost::proto::_,
                 boost::proto::vararg<PlaceholderGrammar>>> {
 };
@@ -313,6 +331,19 @@ const ShiftResetExpression<boost::proto::terminal<ResetTag>::type> reset;
 
 //============================================================================//
 
+struct VectorGrammar : boost::proto::or_<
+		boost::proto::when<
+				boost::proto::subscript<
+				        boost::proto::terminal<ForeachTag>,
+			            boost::proto::_>,
+				RangeWrapperTransform( boost::proto::_value(PlaceholderGrammar(boost::proto::_right)))>,
+		boost::proto::when<
+				boost::proto::terminal<boost::proto::_>,
+				boost::proto::_value>>
+{};
+
+//============================================================================//
+
 int main() {
 
     // An example shift-reset expression.
@@ -395,20 +426,36 @@ int main() {
 
     boost::proto::display_expr(example[1](2));
 
-    struct ForeachTag {};
-    // // const ShiftResetExpression<boost::proto::terminal<ForeachTag>::type> foreach;
-    const boost::proto::terminal<ForeachTag>::type foreach{};
-
+	// Iteration
     std::vector<int> data = {1,2,3,4};
-    boost::proto::display_expr(foreach[data](1));
+	std::cout << "Foreach with data: " << std::endl;
+    boost::proto::display_expr(foreach[data](100));
 
-    auto vexpr = reset(foreach[data](shift(
+    auto foreachExpr = foreach[data](shift(
                         [](std::function<int(int)> k) {
                             return k(0);
-                        })));
+                        }));
 
-    // boost::proto::display_expr(vexpr.getExpr());
+	std::cout << "Foreach with lambda: " << std::endl;
+	boost::proto::display_expr(foreachExpr);
 
+	std::cout << "Foreach with lambda after transformation: " << std::endl;
+	using ForeachExprTransformed = std::result_of<
+			PlaceholderGrammar(decltype(foreachExpr))>::type;
+	boost::proto::display_expr(ForeachExprTransformed(PlaceholderGrammar()
+	        (foreachExpr)));
+	auto foreachExprAfterTransform = PlaceholderGrammar()(foreachExpr);
+	boost::proto::display_expr(foreachExprAfterTransform);
+
+	std::cout << "Vector expression:" << std::endl;
+	auto vectorExpr = foreach[data];
+	boost::proto::display_expr(vectorExpr);
+
+    std::cout << "Test whether 'vectorExpr' matches the grammar: " <<
+		(boost::proto::matches<decltype(vectorExpr),
+        VectorGrammar>::value) <<  std::endl;
+
+	auto vectorExprTransformed = VectorGrammar()(vectorExpr);
 
     // TODO: contrive how to do the selection- and iteration-based use cases.
     //       something similar needs to be created here that is
