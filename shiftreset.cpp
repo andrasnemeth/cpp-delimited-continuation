@@ -238,13 +238,15 @@ public:
 
         using Arg = typename K::argument_type;
 
-        std::function<R(std::function<R(Arg)>)> lambda =
+        using Result = typename K::result_type;
+
+        std::function<R(std::function<Result(Arg)>)> lambda =
                 std::move(ShiftExtractGrammar()(expr));
-        std::function<R(Arg)> k =
+        std::function<Result(Arg)> k =
                 PlaceholderExpr<
                         typename std::result_of<
                                 PlaceholderGrammar(Expr)>::type,
-                        R, Arg>(PlaceholderGrammar()(expr));
+                        Result, Arg>(PlaceholderGrammar()(expr));
         callable = std::bind(lambda, k);
     }
 
@@ -306,9 +308,13 @@ public:
             using Lambda = typename std::result_of<
                     ShiftExtractGrammar(ContainedExpr)>::type;
 
-            using K = typename LambdaTraits<Lambda>::arg1_type;
+            using LambdaFun = LambdaTraits<Lambda>;
 
-            using Result = typename K::result_type;
+            using Result = typename LambdaFun::result_type;
+
+            using K = typename LambdaFun::arg1_type;
+
+            using KResult = typename K::result_type;
 
             return Continuation<Result, ContainedExpr>(
                     std::move(containedExpr));
@@ -341,6 +347,18 @@ struct VectorGrammar : boost::proto::or_<
 				boost::proto::terminal<boost::proto::_>,
 				boost::proto::_value>>
 {};
+
+//============================================================================//
+
+template<typename R, typename Arg>
+class KWrapper {
+public:
+    KWrapper(std::function<R(Arg)> k) : k(k) {
+    }
+
+private:
+    std::function<R(Arg)> k;
+};
 
 //============================================================================//
 
@@ -456,6 +474,12 @@ int main() {
         VectorGrammar>::value) <<  std::endl;
 
 	auto vectorExprTransformed = VectorGrammar()(vectorExpr);
+
+    // Capture the delimited continuation
+    auto captureExpr = reset(3 + 2 - shift(
+            [](std::function<int(int)> k) -> KWrapper<int, int> {
+                return KWrapper<int, int>(k);
+            }));
 
     // TODO: contrive how to do the selection- and iteration-based use cases.
     //       something similar needs to be created here that is
