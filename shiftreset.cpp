@@ -337,23 +337,10 @@ const ShiftResetExpression<boost::proto::terminal<ResetTag>::type> reset;
 
 //============================================================================//
 
-struct VectorGrammar : boost::proto::or_<
-		boost::proto::when<
-				boost::proto::subscript<
-				        boost::proto::terminal<ForeachTag>,
-			            boost::proto::_>,
-				RangeWrapperTransform( boost::proto::_value(PlaceholderGrammar(boost::proto::_right)))>,
-		boost::proto::when<
-				boost::proto::terminal<boost::proto::_>,
-				boost::proto::_value>>
-{};
-
-//============================================================================//
-
 template<typename R, typename Arg>
-class KWrapper {
+class Extract {
 public:
-    KWrapper(std::function<R(Arg)> k) : k(k) {
+    explicit Extract(std::function<R(Arg)> k) : k(k) {
     }
 
 private:
@@ -475,10 +462,10 @@ int main() {
 
 	auto vectorExprTransformed = VectorGrammar()(vectorExpr);
 
-    // Capture the delimited continuation
+    // Extract the delimited continuation
     auto captureExpr = reset(3 + 2 - shift(
-            [](std::function<int(int)> k) -> KWrapper<int, int> {
-                return KWrapper<int, int>(k);
+            [](std::function<int(int)> k) -> Extract<int, int> {
+                return Extract<int, int>(k);
             }));
 
     // TODO: contrive how to do the selection- and iteration-based use cases.
