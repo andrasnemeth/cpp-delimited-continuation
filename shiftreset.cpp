@@ -452,16 +452,6 @@ int main() {
 	auto foreachExprAfterTransform = PlaceholderGrammar()(foreachExpr);
 	boost::proto::display_expr(foreachExprAfterTransform);
 
-	std::cout << "Vector expression:" << std::endl;
-	auto vectorExpr = foreach[data];
-	boost::proto::display_expr(vectorExpr);
-
-    std::cout << "Test whether 'vectorExpr' matches the grammar: " <<
-		(boost::proto::matches<decltype(vectorExpr),
-        VectorGrammar>::value) <<  std::endl;
-
-	auto vectorExprTransformed = VectorGrammar()(vectorExpr);
-
     // Extract the delimited continuation
     auto captureExpr = reset(3 + 2 - shift(
             [](std::function<int(int)> k) -> Extract<int, int> {

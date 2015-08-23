@@ -1,2 +1,2 @@
 : shiftreset.cpp |> clang++ -std=c++14 %f -o %o |> %B
-: callyield.cpp |> clang++ -std=c++14 -lboost_context %f -o %o |> %B
+: runyield.cpp |> clang++ -std=c++14 -lboost_context %f -o %o |> %B
