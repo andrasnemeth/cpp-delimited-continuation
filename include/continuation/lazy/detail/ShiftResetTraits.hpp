@@ -15,7 +15,7 @@ template<typename Expr>
 struct ShiftResetTraits {
 private:
     using Lambda = functional::LambdaTraits<
-        typename std::result_of<grammar::CaptureExpression(Expr)>::type>;
+        typename std::result_of<grammar::CaptureExpression<Expr>(Expr)>::type>;
 
 public:
     using ContinuationResult = typename Lambda::result_type;

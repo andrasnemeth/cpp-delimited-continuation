@@ -1,2 +1,4 @@
-: shiftreset.cpp |> clang++ -std=c++14 %f -o %o |> %B
-: runyield.cpp |> clang++ -std=c++14 -lboost_context %f -o %o |> %B
+: shiftreset.cpp |> bear -- clang++ -std=c++14 %f -o %o |> %B
+: runyield.cpp |> bear -- clang++ -std=c++14 -lboost_context %f -o %o |> %B
+
+: foreach example/lazy/*.cpp |> bear -- clang++ -std=c++14 -I include %f -o %o |> %B
