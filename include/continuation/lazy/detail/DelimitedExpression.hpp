@@ -16,7 +16,7 @@ namespace detail {
 // interface to be converted into an std::function hiding Expr as a kind of
 // type erasure.
 template<typename Expr, typename R, typename Arg>
-struct DelimitedExpression {
+struct DelimitedExpression { // TODO: Better name, e.g., Evaluator?
 
     // TODO: check if Expr is a valid shift-reset expression
 

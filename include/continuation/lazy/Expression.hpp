@@ -5,7 +5,6 @@
 #include "detail/grammar/CaptureExtractor.hpp"
 #include "detail/DelimitedExpression.hpp"
 #include "detail/ShiftResetTraits.hpp"
-#include "detail/ShiftResetTraits.hpp"
 
 #include <boost/optional.hpp>
 
@@ -21,19 +20,21 @@ namespace lazy {
 // ShiftResetExpression. The contained expression is further processed
 // and transformed here.
 template<typename R, typename Expr>
-class Expression : std::function<R()> {
+class Expression : public std::function<R()> { // TODO: find a better name
 public:
+    using ContainedExpr = Expr;
+
     Expression(Expr&& expr) : expr(std::move(expr)) {
-        using Arg = typename detail::ShiftResetTraits<Expr>::Arg;
-        using Result = typename detail::ShiftResetTraits<Expr>::R;
+        using Arg = typename detail::ShiftResetTraits<Expr>::KArg;
+        using Result = typename detail::ShiftResetTraits<Expr>::KResult;
 
         std::function<R(std::function<Result(Arg)>)> lambda =
                 std::move(detail::grammar::extractCaptureExpression(expr));
         std::function<Result(Arg)> k =
-                detail::DelimitedExpression<Expr,
+                detail::DelimitedExpression<
                 typename std::result_of<detail::grammar::DelimitedExpression(
                         Expr)>::type,
-                Arg>(detail::grammar::DelimitedExpression()(expr));
+                R, Arg>(detail::grammar::DelimitedExpression()(expr));
         callable = std::bind(lambda, k);
     }
 
@@ -57,6 +58,8 @@ public:
 
 private:
     const Expr expr;
+    // TODO: Use bind expression type instead of function
+    //       since it is internal.
     std::function<R()> callable;
     boost::optional<R> result;
 };

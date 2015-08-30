@@ -23,7 +23,10 @@ struct Placeholder : boost::proto::transform<Placeholder> {
     template<typename Expr, typename Unused1, typename Unused2>
     struct impl : boost::proto::transform_impl<Expr, Unused1, Unused2> {
 
-        auto operator ()(typename impl::expr_param, typename impl::state_param,
+        typedef typename boost::proto::result_of::as_expr<
+                tag::Placeholder>::type result_type;
+
+        result_type operator ()(typename impl::expr_param, typename impl::state_param,
                 typename impl::data_param) const {
             return boost::proto::as_expr(tag::Placeholder());
         }

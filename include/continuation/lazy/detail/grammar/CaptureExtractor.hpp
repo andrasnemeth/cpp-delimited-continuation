@@ -26,19 +26,14 @@ struct CaptureExtractor : boost::proto::or_<
 				boost::proto::terminal<boost::proto::_>>,
                 CaptureExtractor(boost::proto::_left,
 				boost::proto::_value(boost::proto::_right))>, // <-- here it is put into the state
-        // boost::proto::when<
-        //         boost::proto::function<boost::proto::terminal<ResetTag>,
-        //                 boost::proto::_>,
-        //         CaptureExtractor(boost::proto::_right)>,
-        // boost::proto::when<
-        //         boost::proto::binary_expr<boost::proto::_, CaptureExtractor,
-        //                 CaptureExtractor>,
-        //         CaptureExtractor(boost::proto::_left,
-        //         CaptureExtractor(boost::proto::_right))>,
-        // boost::proto::when<
-        //         boost::proto::unary_expr<boost::proto::_, CaptureExtractor>,
-        //         CaptureExtractor(boost::proto::_right)>,
-        boost::proto::nary_expr<boost::proto::_, boost::proto::vararg<CaptureExtractor>>,
+        boost::proto::when<
+                boost::proto::binary_expr<boost::proto::_, CaptureExtractor,
+                        CaptureExtractor>,
+                CaptureExtractor(boost::proto::_left,
+                CaptureExtractor(boost::proto::_right))>,
+        boost::proto::when<
+                boost::proto::unary_expr<boost::proto::_, CaptureExtractor>,
+                CaptureExtractor(boost::proto::_right)>,
         boost::proto::when<
                 boost::proto::terminal<boost::proto::_>, boost::proto::_state>> { // <-- here it is returned
 };

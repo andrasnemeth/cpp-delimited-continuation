@@ -17,7 +17,7 @@ namespace domain {
 //----------------------------------------------------------------------------//
 
 struct ShiftReset : boost::proto::domain<
-        boost::proto::generator<ShiftResetExpression>> {
+        boost::proto::generator<detail::ShiftResetExpression>> {
 };
 
 //----------------------------------------------------------------------------//
