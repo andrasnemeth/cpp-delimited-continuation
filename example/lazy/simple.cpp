@@ -1,4 +1,4 @@
-#include <continuation/lazy/Expression.hpp>
+#include <continuation/lazy/ShiftResetExpression.hpp>
 #include <continuation/lazy/ShiftReset.hpp>
 
 #include <boost/optional/optional_io.hpp>
@@ -26,7 +26,7 @@ int main() {
     // And has the real type:
     // NOTE: the second template parameter is only for debugging purposes and
     //       can be removed later...
-    continuation::lazy::Expression<int, decltype(expr)::ContainedExpr>
+    continuation::lazy::ShiftResetExpression<int, decltype(expr)::ContainedExpr>
             showExprType = expr;
 
     // THe result of the evaluation:

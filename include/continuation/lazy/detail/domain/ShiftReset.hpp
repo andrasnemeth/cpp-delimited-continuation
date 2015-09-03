@@ -10,14 +10,14 @@ namespace detail {
 //----------------------------------------------------------------------------//
 
 template<typename Expr>
-class ShiftResetExpression;
+class TransformToCallable;
 
 //============================================================================//
 namespace domain {
 //----------------------------------------------------------------------------//
 
 struct ShiftReset : boost::proto::domain<
-        boost::proto::generator<detail::ShiftResetExpression>> {
+        boost::proto::generator<detail::TransformToCallable>> {
 };
 
 //----------------------------------------------------------------------------//

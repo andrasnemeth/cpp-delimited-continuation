@@ -3,7 +3,7 @@
 
 #include "Reset.hpp"
 #include "Shift.hpp"
-#include "Expression.hpp"
+#include "ShiftResetExpression.hpp"
 
 #include <boost/proto/proto.hpp>  // does not compile if not present
 

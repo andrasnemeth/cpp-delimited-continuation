@@ -4,7 +4,7 @@
 #include "detail/domain/ShiftReset.hpp"
 #include "detail/tag/Reset.hpp"
 #include "detail/ShiftResetTraits.hpp"
-#include "Expression.hpp"
+#include "ShiftResetExpression.hpp"
 
 #include <boost/proto/extends.hpp>
 #include <boost/proto/traits.hpp>
@@ -21,14 +21,14 @@ namespace detail {
 //----------------------------------------------------------------------------//
 
 template<typename Expr>
-class ShiftResetExpression : boost::proto::extends<Expr,
-        ShiftResetExpression<Expr>, detail::domain::ShiftReset> {
+class TransformToCallable : boost::proto::extends<Expr,
+        TransformToCallable<Expr>, detail::domain::ShiftReset> {
 private:
-    using BaseType = boost::proto::extends<Expr, ShiftResetExpression<Expr>,
+    using BaseType = boost::proto::extends<Expr, TransformToCallable<Expr>,
             detail::domain::ShiftReset>;
 
 public:
-    explicit ShiftResetExpression(const Expr& expr = Expr{}) : BaseType(expr) {
+    explicit TransformToCallable(const Expr& expr = Expr{}) : BaseType(expr) {
     }
 
     template<typename ContainedExpr>
@@ -37,7 +37,7 @@ public:
         using Result =
                 typename ShiftResetTraits<ContainedExpr>::ContinuationResult;
 
-        return Expression<Result, ContainedExpr>(
+        return lazy::ShiftResetExpression<Result, ContainedExpr>(
                 std::move(containedExpr));
     }
 };
@@ -46,7 +46,7 @@ public:
 }  // namespace detail
 //============================================================================//
 
-const detail::ShiftResetExpression<
+const detail::TransformToCallable<
         boost::proto::terminal<detail::tag::Reset>::type> reset{};
 
 //const boost::proto::terminal<detail::tag::Reset>::type reset;

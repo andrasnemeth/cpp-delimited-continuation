@@ -3,7 +3,7 @@
 
 #include "detail/grammar/DelimitedExpression.hpp"
 #include "detail/grammar/CaptureExtractor.hpp"
-#include "detail/DelimitedExpression.hpp"
+#include "detail/ExpressionEvaluator.hpp"
 #include "detail/ShiftResetTraits.hpp"
 
 #include <boost/optional.hpp>
@@ -20,25 +20,25 @@ namespace lazy {
 // ShiftResetExpression. The contained expression is further processed
 // and transformed here.
 template<typename R, typename Expr>
-class Expression : public std::function<R()> { // TODO: find a better name
+class ShiftResetExpression : public std::function<R()> {
 public:
     using ContainedExpr = Expr;
 
-    Expression(Expr&& expr) : expr(std::move(expr)) {
+    ShiftResetExpression(Expr&& expr) : expr(std::move(expr)) {
         using Arg = typename detail::ShiftResetTraits<Expr>::KArg;
         using Result = typename detail::ShiftResetTraits<Expr>::KResult;
 
         std::function<R(std::function<Result(Arg)>)> lambda =
                 std::move(detail::grammar::extractCaptureExpression(expr));
         std::function<Result(Arg)> k =
-                detail::DelimitedExpression<
+                detail::ExpressionEvaluator<
                 typename std::result_of<detail::grammar::DelimitedExpression(
                         Expr)>::type,
                 R, Arg>(detail::grammar::DelimitedExpression()(expr));
         callable = std::bind(lambda, k);
     }
 
-    Expression& operator()() {
+    ShiftResetExpression& operator()() {
         result = callable();
         return *this;
     }
@@ -67,10 +67,9 @@ private:
 template<typename Char, typename Traits, typename R, typename Expr>
 std::basic_ostream<Char, Traits>& operator<<(
         std::basic_ostream<Char, Traits>& stream,
-        const Expression<R, Expr>& continuation) {
-    return stream << continuation.getResult();
+        const ShiftResetExpression<R, Expr>& expr) {
+    return stream << expr.getResult();
 }
-
 
 //----------------------------------------------------------------------------//
 } // namespace lazy
